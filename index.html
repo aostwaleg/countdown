@@ -1,0 +1,1011 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Goal Countdown | T-Minus Prep & Milestone Tracker</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts: Inter & JetBrains Mono -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
+    <!-- FontAwesome for crisp icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Tone.js for subtle Web Audio chimes (no external audio files) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace'],
+                    },
+                    colors: {
+                        tealDeep: '#09191f',
+                        tealSurface: '#0f2933',
+                        tealAccent: '#184252',
+                        goldWarm: '#eab308',
+                        goldBright: '#fde047',
+                        goldMuted: '#ca8a04',
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        /* Custom Atmospheric Workspace Backdrop & Glassmorphism */
+        body {
+            background-color: #071318;
+            background-image: 
+                radial-gradient(circle at 15% 15%, rgba(24, 78, 94, 0.45) 0%, transparent 45%),
+                radial-gradient(circle at 85% 25%, rgba(217, 155, 38, 0.16) 0%, transparent 45%),
+                radial-gradient(circle at 50% 90%, rgba(13, 52, 64, 0.6) 0%, transparent 55%);
+            background-attachment: fixed;
+            color: #f1f5f9;
+            min-height: 100vh;
+        }
+
+        .glass-panel {
+            background: rgba(13, 35, 44, 0.62);
+            backdrop-filter: blur(18px);
+            -webkit-backdrop-filter: blur(18px);
+            border: 1px solid rgba(255, 255, 255, 0.09);
+            box-shadow: 0 20px 40px -15px rgba(0, 0, 0, 0.55), inset 0 1px 0 0 rgba(255, 255, 255, 0.08);
+        }
+
+        .glass-card {
+            background: rgba(18, 46, 58, 0.48);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.07);
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .glass-card:hover {
+            border-color: rgba(234, 179, 8, 0.35);
+            background: rgba(22, 55, 69, 0.62);
+            transform: translateY(-1px);
+        }
+
+        .glass-card.completed {
+            background: rgba(11, 29, 36, 0.55);
+            border-color: rgba(234, 179, 8, 0.22);
+        }
+
+        .glass-card.blackout {
+            background: rgba(15, 23, 42, 0.45);
+            border-style: dashed;
+            border-color: rgba(148, 163, 184, 0.25);
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: rgba(9, 25, 31, 0.4);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(234, 179, 8, 0.3);
+            border-radius: 9999px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(234, 179, 8, 0.55);
+        }
+
+        /* Glow Utilities */
+        .gold-glow {
+            box-shadow: 0 0 20px rgba(234, 179, 8, 0.22);
+        }
+        .text-gold-gradient {
+            background: linear-gradient(135deg, #fef08a 0%, #eab308 55%, #ca8a04 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        /* Custom Checkbox Animation */
+        .custom-checkbox {
+            appearance: none;
+            -webkit-appearance: none;
+            width: 1.5rem;
+            height: 1.5rem;
+            border-radius: 9999px;
+            border: 2px solid rgba(255, 255, 255, 0.35);
+            background: rgba(9, 25, 31, 0.6);
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
+            flex-shrink: 0;
+        }
+        .custom-checkbox:hover {
+            border-color: #eab308;
+            box-shadow: 0 0 12px rgba(234, 179, 8, 0.3);
+        }
+        .custom-checkbox:checked {
+            background: linear-gradient(135deg, #facc15 0%, #ca8a04 100%);
+            border-color: #fde047;
+            box-shadow: 0 0 15px rgba(234, 179, 8, 0.45);
+        }
+        .custom-checkbox:checked::after {
+            content: '\f00c';
+            font-family: 'Font Awesome 6 Free';
+            font-weight: 900;
+            font-size: 0.75rem;
+            color: #09191f;
+        }
+    </style>
+</head>
+<body class="antialiased selection:bg-amber-500/30 selection:text-amber-200 pb-12">
+
+    <!-- Toast Notification Banner (Replaces alert) -->
+    <div id="toast-container" class="fixed bottom-5 right-5 z-50 flex flex-col gap-2 pointer-events-none"></div>
+
+    <!-- Custom Confirmation Modal (Replaces confirm) -->
+    <div id="confirm-modal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/70 backdrop-blur-sm p-4">
+        <div class="glass-panel rounded-2xl max-w-md w-full p-6 border border-amber-500/30 shadow-2xl transform transition-all">
+            <div class="flex items-center gap-3 mb-3">
+                <div class="w-10 h-10 rounded-xl bg-amber-500/20 border border-amber-400/30 flex items-center justify-center text-amber-400">
+                    <i class="fa-solid fa-triangle-exclamation"></i>
+                </div>
+                <h3 id="modal-title" class="text-lg font-bold text-white">Confirm Action</h3>
+            </div>
+            <p id="modal-message" class="text-slate-300 text-sm leading-relaxed mb-6">Are you sure you want to proceed?</p>
+            <div class="flex justify-end gap-3">
+                <button id="modal-cancel" class="px-4 py-2 rounded-xl text-sm font-medium text-slate-300 hover:text-white bg-white/5 hover:bg-white/10 transition">
+                    Cancel
+                </button>
+                <button id="modal-confirm" class="px-4 py-2 rounded-xl text-sm font-semibold text-slate-950 bg-gradient-to-r from-amber-300 to-amber-500 hover:from-amber-200 hover:to-amber-400 shadow-lg shadow-amber-500/20 transition">
+                    Confirm
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main App Container -->
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6 sm:pt-8">
+        
+        <!-- Top Header & Live Countdown -->
+        <header class="glass-panel rounded-3xl p-6 sm:p-8 mb-6 relative overflow-hidden">
+            <!-- Decorative ambient lamp glow -->
+            <div class="absolute -top-24 -right-24 w-64 h-64 bg-amber-400/10 rounded-full blur-3xl pointer-events-none"></div>
+            
+            <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6 relative z-10">
+                <!-- Title & Target Badge -->
+                <div>
+                    <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-500/15 border border-amber-400/30 text-amber-300 text-xs font-semibold tracking-wider uppercase mb-3">
+                        <span class="w-2 h-2 rounded-full bg-amber-400 animate-pulse"></span>
+                        Target Locked: December 14, 2026
+                    </div>
+                    <h1 class="text-2xl sm:text-4xl font-extrabold tracking-tight text-white">
+                        GOAL COUNTDOWN: <span class="text-gold-gradient">Job-I</span>
+                    </h1>
+                    <p class="text-slate-300/90 text-sm sm:text-base mt-1.5 max-w-xl">
+                        System Design • Architecture Deep-Dive • AI & RAG • Behavioral Mastery
+                    </p>
+                </div>
+
+                <!-- Live Countdown Clock -->
+                <div class="flex flex-col sm:items-end">
+                    <span class="text-xs font-mono uppercase tracking-widest text-amber-300/80 mb-2">Live Time Remaining</span>
+                    <div class="grid grid-cols-4 gap-2 sm:gap-3 text-center">
+                        <div class="bg-slate-950/60 border border-white/10 rounded-2xl px-3 sm:px-4 py-2.5 min-w-[68px] sm:min-w-[82px]">
+                            <div id="cd-days" class="font-mono text-2xl sm:text-3xl font-bold text-amber-300">--</div>
+                            <div class="text-[10px] sm:text-xs uppercase tracking-wider text-slate-400 mt-0.5">Days</div>
+                        </div>
+                        <div class="bg-slate-950/60 border border-white/10 rounded-2xl px-3 sm:px-4 py-2.5 min-w-[68px] sm:min-w-[82px]">
+                            <div id="cd-hours" class="font-mono text-2xl sm:text-3xl font-bold text-white">--</div>
+                            <div class="text-[10px] sm:text-xs uppercase tracking-wider text-slate-400 mt-0.5">Hours</div>
+                        </div>
+                        <div class="bg-slate-950/60 border border-white/10 rounded-2xl px-3 sm:px-4 py-2.5 min-w-[68px] sm:min-w-[82px]">
+                            <div id="cd-mins" class="font-mono text-2xl sm:text-3xl font-bold text-white">--</div>
+                            <div class="text-[10px] sm:text-xs uppercase tracking-wider text-slate-400 mt-0.5">Mins</div>
+                        </div>
+                        <div class="bg-slate-950/60 border border-amber-500/25 rounded-2xl px-3 sm:px-4 py-2.5 min-w-[68px] sm:min-w-[82px]">
+                            <div id="cd-secs" class="font-mono text-2xl sm:text-3xl font-bold text-amber-400">--</div>
+                            <div class="text-[10px] sm:text-xs uppercase tracking-wider text-slate-400 mt-0.5">Secs</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Overall Progress Bar -->
+            <div class="mt-6 pt-6 border-t border-white/10">
+                <div class="flex flex-wrap items-center justify-between gap-2 text-xs sm:text-sm mb-2">
+                    <div class="flex items-center gap-2 font-medium text-slate-200">
+                        <i class="fa-solid fa-chart-line text-amber-400"></i>
+                        <span>Overall Readiness Progress</span>
+                    </div>
+                    <div class="flex items-center gap-4 font-mono">
+                        <span class="text-slate-300"><strong id="hours-completed" class="text-amber-300">0</strong> / 58 Planned Hrs</span>
+                        <span id="progress-percent" class="px-2.5 py-0.5 rounded-lg bg-amber-500/20 text-amber-300 font-bold">0%</span>
+                    </div>
+                </div>
+                <div class="w-full h-3 bg-slate-950/70 rounded-full overflow-hidden p-0.5 border border-white/10">
+                    <div id="overall-progress-bar" class="h-full rounded-full bg-gradient-to-r from-teal-400 via-amber-400 to-amber-300 transition-all duration-500 ease-out" style="width: 0%"></div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Two-Column Grid -->
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+            
+            <!-- Left Column: T-Minus Milestones (7 cols on lg) -->
+            <section class="lg:col-span-7 flex flex-col gap-4">
+                <div class="glass-panel rounded-3xl p-5 sm:p-6">
+                    <div class="flex flex-wrap items-center justify-between gap-3 mb-5">
+                        <div>
+                            <h2 class="text-lg sm:text-xl font-bold text-white flex items-center gap-2.5">
+                                <i class="fa-solid fa-timeline text-amber-400"></i>
+                                <span>Backward Prep Roadmap</span>
+                            </h2>
+                            <p class="text-xs text-slate-400 mt-0.5">2h Weekdays • 4h Weekends • Dec 1–2 Travel Blackout Protected</p>
+                        </div>
+                        <button id="reset-milestones-btn" class="text-xs px-3 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white border border-white/10 transition flex items-center gap-1.5">
+                            <i class="fa-solid fa-rotate-left"></i> Reset Plan
+                        </button>
+                    </div>
+
+                    <!-- Milestone Timeline List -->
+                    <div id="milestones-list" class="space-y-3 relative">
+                        <!-- Rendered dynamically via JS -->
+                    </div>
+                </div>
+            </section>
+
+            <!-- Right Column: Study Sprint Timer & Workspace Scratchpad (5 cols on lg) -->
+            <aside class="lg:col-span-5 flex flex-col gap-6">
+                
+                <!-- Study Session Sprint Timer -->
+                <div class="glass-panel rounded-3xl p-5 sm:p-6">
+                    <div class="flex items-center justify-between mb-4">
+                        <h2 class="text-lg font-bold text-white flex items-center gap-2">
+                            <i class="fa-solid fa-stopwatch text-amber-400"></i>
+                            <span>Daily Sprint Timer</span>
+                        </h2>
+                        <span id="day-type-badge" class="text-xs font-semibold px-2.5 py-1 rounded-full bg-teal-500/20 text-teal-300 border border-teal-400/30">
+                            Weekday Target: 2h
+                        </span>
+                    </div>
+
+                    <!-- Allocation Mode Toggle & Daily Sprint Tracker -->
+                    <div class="bg-slate-950/50 rounded-2xl p-3.5 border border-white/5 mb-4">
+                        <div class="flex items-center justify-between gap-2 mb-3">
+                            <span class="text-xs text-slate-400 font-medium">Schedule Mode:</span>
+                            <div class="inline-flex rounded-xl bg-slate-900 p-1 border border-white/10">
+                                <button id="mode-weekday" class="px-3 py-1 rounded-lg text-xs font-semibold transition">
+                                    Weekday (2×60m)
+                                </button>
+                                <button id="mode-weekend" class="px-3 py-1 rounded-lg text-xs font-semibold transition">
+                                    Weekend (4×60m)
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Visual 60-Min Sprint Blocks for Today -->
+                        <div class="flex items-center justify-between text-xs text-slate-300 mb-2">
+                            <span>Today's 60-Min Blocks:</span>
+                            <span id="sprint-count-label" class="font-mono text-amber-300 font-semibold">0 / 2 completed</span>
+                        </div>
+                        <div id="sprint-blocks-container" class="grid grid-cols-2 gap-2">
+                            <!-- Sprint block pills rendered via JS -->
+                        </div>
+                    </div>
+
+                    <!-- Timer Display -->
+                    <div class="text-center py-4 bg-gradient-to-b from-slate-950/60 to-slate-900/40 rounded-2xl border border-white/10 mb-4 relative overflow-hidden">
+                        <div id="timer-progress-bg" class="absolute bottom-0 left-0 h-1 bg-amber-400 transition-all duration-1000" style="width: 100%"></div>
+                        <div id="timer-preset-label" class="text-[11px] uppercase tracking-widest text-amber-300/80 font-mono mb-1">60-Min Deep Focus Sprint</div>
+                        <div id="timer-display" class="font-mono text-5xl sm:text-6xl font-bold tracking-tight text-white my-1">
+                            60:00
+                        </div>
+                        <div class="flex justify-center gap-2 mt-3 px-3">
+                            <button data-mins="60" class="preset-btn px-2.5 py-1 rounded-lg text-xs font-mono bg-amber-500/20 text-amber-300 border border-amber-400/40 transition">60m Sprint</button>
+                            <button data-mins="25" class="preset-btn px-2.5 py-1 rounded-lg text-xs font-mono bg-white/5 text-slate-300 hover:bg-white/10 border border-white/10 transition">25m Rapid</button>
+                            <button data-mins="10" class="preset-btn px-2.5 py-1 rounded-lg text-xs font-mono bg-white/5 text-slate-300 hover:bg-white/10 border border-white/10 transition">10m Break</button>
+                        </div>
+                    </div>
+
+                    <!-- Timer Controls -->
+                    <div class="grid grid-cols-3 gap-2.5">
+                        <button id="timer-start-btn" class="col-span-2 py-3 px-4 rounded-xl font-bold text-sm text-slate-950 bg-gradient-to-r from-amber-300 via-amber-400 to-amber-500 hover:from-amber-200 hover:to-amber-400 shadow-lg shadow-amber-500/20 transition flex items-center justify-center gap-2">
+                            <i class="fa-solid fa-play"></i> <span>Start Sprint</span>
+                        </button>
+                        <button id="timer-reset-btn" class="py-3 px-4 rounded-xl font-semibold text-sm text-slate-200 bg-white/10 hover:bg-white/15 border border-white/10 transition flex items-center justify-center gap-1.5">
+                            <i class="fa-solid fa-rotate-right"></i> <span>Reset</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Scratchpad & Notes Section -->
+                <div class="glass-panel rounded-3xl p-5 sm:p-6 flex-1 flex flex-col">
+                    <div class="flex items-center justify-between mb-3">
+                        <h2 class="text-lg font-bold text-white flex items-center gap-2">
+                            <i class="fa-solid fa-pen-nib text-amber-400"></i>
+                            <span>Prep Scratchpad</span>
+                        </h2>
+                        <span id="save-status" class="text-[11px] font-mono text-emerald-400 flex items-center gap-1">
+                            <i class="fa-solid fa-check-circle"></i> Saved
+                        </span>
+                    </div>
+
+                    <!-- Scratchpad Tabs -->
+                    <div class="grid grid-cols-3 gap-1.5 p-1 bg-slate-950/60 rounded-xl border border-white/10 mb-3">
+                        <button data-tab="sysdesign" class="note-tab active py-1.5 px-2 rounded-lg text-xs font-semibold transition text-center">
+                            Sys Design
+                        </button>
+                        <button data-tab="star" class="note-tab py-1.5 px-2 rounded-lg text-xs font-semibold transition text-center">
+                            STAR Stories
+                        </button>
+                        <button data-tab="ai" class="note-tab py-1.5 px-2 rounded-lg text-xs font-semibold transition text-center">
+                            AI & RAG
+                        </button>
+                    </div>
+
+                    <!-- Quick Template Insert Bar -->
+                    <div class="flex items-center justify-between gap-2 mb-2">
+                        <span id="tab-hint" class="text-[11px] text-slate-400">Distributed systems & scale checklist</span>
+                        <button id="insert-template-btn" class="text-[11px] font-medium text-amber-300 hover:text-amber-200 underline underline-offset-2 transition">
+                            + Insert Template
+                        </button>
+                    </div>
+
+                    <!-- Note Textarea -->
+                    <textarea id="scratchpad-textarea" rows="11" 
+                        class="w-full flex-1 bg-slate-950/60 border border-white/10 focus:border-amber-400/50 focus:ring-2 focus:ring-amber-400/20 rounded-2xl p-4 text-sm text-slate-200 placeholder-slate-500 font-mono leading-relaxed resize-y outline-none transition"
+                        placeholder="Jot down architecture trade-offs, capacity estimations, or STAR bullet points..."></textarea>
+
+                    <div class="flex items-center justify-between mt-3 pt-2 border-t border-white/5 text-xs text-slate-400">
+                        <span id="char-count">0 chars</span>
+                        <button id="copy-notes-btn" class="px-3 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-slate-200 transition flex items-center gap-1.5">
+                            <i class="fa-regular fa-copy"></i> Copy Notes
+                        </button>
+                    </div>
+                </div>
+
+            </aside>
+        </div>
+    </div>
+
+    <script>
+        /**
+         * T-MINUS COUNTDOWN: Job-I Application Logic
+         * Persists milestones, daily sprints, and scratchpad notes in localStorage.
+         */
+
+        const STORAGE_KEY = 'job_i_prep_tracker_v1';
+        const TARGET_DATE = new Date('2026-12-14T09:00:00'); // December 14, 2026
+
+        // Exact prep plan milestones
+        const DEFAULT_MILESTONES = [
+            {
+                id: 'm1',
+                tMinus: 'T-26 to T-22',
+                dates: 'Nov 18 – Nov 22',
+                title: 'Core distributed system design drills',
+                hours: 14,
+                category: 'System Design',
+                icon: 'fa-network-wired',
+                isBlackout: false,
+                subtasks: ['Consistent hashing & sharding', 'Caching strategies & CDN invalidation', 'Message queues & idempotency']
+            },
+            {
+                id: 'm2',
+                tMinus: 'T-21 to T-15',
+                dates: 'Nov 23 – Nov 29',
+                title: 'AI architecture and RAG pipelines',
+                hours: 18,
+                category: 'AI / LLM',
+                icon: 'fa-brain',
+                isBlackout: false,
+                subtasks: ['Hybrid search & vector DB indexing', 'Chunking, reranking & eval metrics', 'LLM latency, caching & guardrails']
+            },
+            {
+                id: 'm3',
+                tMinus: 'T-14 to T-13',
+                dates: 'Nov 30 – Dec 1',
+                title: 'Light reading before travel blackout',
+                hours: 2,
+                category: 'Review',
+                icon: 'fa-book-open',
+                isBlackout: false,
+                subtasks: ['Engineering blog architecture notes', 'Pack offline flashcards for trip']
+            },
+            {
+                id: 'm4',
+                tMinus: 'T-12',
+                dates: 'Dec 2',
+                title: 'Blackout day — no prep',
+                hours: 0,
+                category: 'Rest / Travel',
+                icon: 'fa-plane-departure',
+                isBlackout: true,
+                subtasks: ['Full mental recharge & travel']
+            },
+            {
+                id: 'm5',
+                tMinus: 'T-11 to T-8',
+                dates: 'Dec 3 – Dec 6',
+                title: 'Past project architecture deep-dives',
+                hours: 10,
+                category: 'Architecture',
+                icon: 'fa-diagram-project',
+                isBlackout: false,
+                subtasks: ['Draw end-to-end flagship diagram', 'Document bottlenecks, trade-offs & metrics', 'Prepare failure mode & post-mortem answers']
+            },
+            {
+                id: 'm6',
+                tMinus: 'T-7 to T-4',
+                dates: 'Dec 7 – Dec 10',
+                title: 'Timed mocks and behavioral stories',
+                hours: 8,
+                category: 'Mock & STAR',
+                icon: 'fa-stopwatch',
+                isBlackout: false,
+                subtasks: ['2x 45-min whiteboard design mocks', 'Refine 5 core STAR leadership stories']
+            },
+            {
+                id: 'm7',
+                tMinus: 'T-3 to T-2',
+                dates: 'Dec 11 – Dec 12',
+                title: 'Company research and gap patching',
+                hours: 4,
+                category: 'Strategy',
+                icon: 'fa-magnifying-glass-chart',
+                isBlackout: false,
+                subtasks: ['Review recent product/tech launches', 'Prepare 5 high-signal interviewer questions']
+            },
+            {
+                id: 'm8',
+                tMinus: 'T-1',
+                dates: 'Dec 13',
+                title: 'High-level cheat sheet review',
+                hours: 2,
+                category: 'Taper',
+                icon: 'fa-moon',
+                isBlackout: false,
+                subtasks: ['Skim numbers-every-engineer-should-know', 'Stop studying by 6 PM & sleep early']
+            },
+            {
+                id: 'm9',
+                tMinus: 'T-0',
+                dates: 'Dec 14',
+                title: 'Execute interview with confidence',
+                hours: 0,
+                category: 'Game Day',
+                icon: 'fa-star',
+                isBlackout: false,
+                isTargetDay: true,
+                subtasks: ['Clarify requirements first, communicate trade-offs clearly']
+            }
+        ];
+
+        const NOTE_TEMPLATES = {
+            sysdesign: `## SYSTEM DESIGN CHECKLIST (45 MIN)
+1. [0-5m] Clarify Functional & Non-Functional Reqs (DAU, QPS, Read/Write ratio, Latency vs Consistency)
+2. [5-10m] Back-of-the-envelope capacity & storage math
+3. [10-20m] High-Level API & Core Data Flow Diagram
+4. [20-35m] Deep Dive: DB partitioning, Caching, Async Queues
+5. [35-45m] Bottlenecks, Single Points of Failure & Observability`,
+            star: `## STAR STORY MATRIX
+• STORY 1: High-Stakes Architecture Trade-off
+  - Situation: 
+  - Task: 
+  - Action (Focus on "I", trade-offs evaluated): 
+  - Result (Quantified latency/cost/revenue impact): 
+
+• STORY 2: Production Outage / Ambiguity / Conflict
+  - Situation: 
+  - Task: 
+  - Action: 
+  - Result: `,
+            ai: `## AI & RAG ARCHITECTURE CHECKLIST
+- Ingestion: Semantic chunking vs fixed-size + overlap
+- Retrieval: Dense embeddings + BM25 sparse hybrid search
+- Precision: Cross-encoder reranker before context window
+- Scale & Cost: Semantic caching (Redis), quantized models, batching
+- Evals: Faithfulness, Context Recall, Answer Relevance (RAGAS)`
+        };
+
+        // Application State
+        let state = {
+            completedMilestones: {},
+            scheduleMode: 'weekday', // 'weekday' (2x60m) | 'weekend' (4x60m)
+            sprintDate: new Date().toDateString(),
+            completedSprints: [false, false, false, false],
+            activeTab: 'sysdesign',
+            notes: {
+                sysdesign: NOTE_TEMPLATES.sysdesign,
+                star: '',
+                ai: ''
+            }
+        };
+
+        // Timer Runtime Variables
+        let timerDurationSeconds = 60 * 60;
+        let timerRemainingSeconds = 60 * 60;
+        let timerInterval = null;
+        let isTimerRunning = false;
+
+        // DOM Elements
+        const milestonesListEl = document.getElementById('milestones-list');
+        const hoursCompletedEl = document.getElementById('hours-completed');
+        const progressPercentEl = document.getElementById('progress-percent');
+        const overallProgressBarEl = document.getElementById('overall-progress-bar');
+
+        // Initialize App
+        function init() {
+            loadState();
+            autoDetectDayModeIfFresh();
+            renderMilestones();
+            updateOverallProgress();
+            renderSprintSection();
+            initTabsAndNotes();
+            startCountdownClock();
+            bindEvents();
+        }
+
+        // Load state from localStorage safely
+        function loadState() {
+            try {
+                const raw = localStorage.getItem(STORAGE_KEY);
+                if (raw) {
+                    const parsed = JSON.parse(raw);
+                    state = { ...state, ...parsed };
+                    // Reset daily sprint blocks if it's a new calendar day
+                    const todayStr = new Date().toDateString();
+                    if (state.sprintDate !== todayStr) {
+                        state.sprintDate = todayStr;
+                        state.completedSprints = [false, false, false, false];
+                        saveState(false);
+                    }
+                }
+            } catch (err) {
+                console.error('Failed to load saved state:', err);
+            }
+        }
+
+        function saveState(showIndicator = true) {
+            try {
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+                if (showIndicator) {
+                    const statusEl = document.getElementById('save-status');
+                    statusEl.innerHTML = '<i class="fa-solid fa-check-circle"></i> Saved';
+                    statusEl.classList.remove('text-amber-300');
+                    statusEl.classList.add('text-emerald-400');
+                }
+            } catch (err) {
+                console.error('Failed to save state:', err);
+            }
+        }
+
+        function autoDetectDayModeIfFresh() {
+            if (!localStorage.getItem(STORAGE_KEY)) {
+                const day = new Date().getDay();
+                state.scheduleMode = (day === 0 || day === 6) ? 'weekend' : 'weekday';
+            }
+        }
+
+        // Live Countdown to December 14, 2026
+        function startCountdownClock() {
+            function updateClock() {
+                const now = new Date();
+                const diff = TARGET_DATE - now;
+
+                if (diff <= 0) {
+                    document.getElementById('cd-days').textContent = '00';
+                    document.getElementById('cd-hours').textContent = '00';
+                    document.getElementById('cd-mins').textContent = '00';
+                    document.getElementById('cd-secs').textContent = '00';
+                    return;
+                }
+
+                const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+                const hours = Math.floor((diff / (1000 * 60 * 60)) % 24);
+                const mins = Math.floor((diff / 1000 / 60) % 60);
+                const secs = Math.floor((diff / 1000) % 60);
+
+                document.getElementById('cd-days').textContent = String(days).padStart(2, '0');
+                document.getElementById('cd-hours').textContent = String(hours).padStart(2, '0');
+                document.getElementById('cd-mins').textContent = String(mins).padStart(2, '0');
+                document.getElementById('cd-secs').textContent = String(secs).padStart(2, '0');
+            }
+            updateClock();
+            setInterval(updateClock, 1000);
+        }
+
+        // Render Backward Prep Milestones
+        function renderMilestones() {
+            milestonesListEl.innerHTML = '';
+
+            DEFAULT_MILESTONES.forEach((m) => {
+                const isChecked = !!state.completedMilestones[m.id];
+                const card = document.createElement('div');
+                
+                let cardClasses = 'glass-card rounded-2xl p-4 sm:p-5 relative ';
+                if (isChecked) cardClasses += 'completed ';
+                if (m.isBlackout) cardClasses += 'blackout ';
+                if (m.isTargetDay) cardClasses += 'border-amber-400/50 bg-gradient-to-r from-amber-500/15 to-teal-900/40 ';
+
+                card.className = cardClasses;
+
+                const subtasksHtml = m.subtasks.map(st => `
+                    <span class="inline-flex items-center gap-1.5 text-[11px] px-2.5 py-0.5 rounded-md bg-slate-950/50 text-slate-300 border border-white/5">
+                        <span class="w-1 h-1 rounded-full ${isChecked ? 'bg-amber-400' : 'bg-teal-400'}"></span>
+                        ${st}
+                    </span>
+                `).join('');
+
+                card.innerHTML = `
+                    <div class="flex items-start gap-3.5 sm:gap-4">
+                        <div class="pt-0.5">
+                            <input type="checkbox" id="chk-${m.id}" data-id="${m.id}" class="custom-checkbox milestone-chk" ${isChecked ? 'checked' : ''} aria-label="Mark ${m.tMinus} complete">
+                        </div>
+                        <div class="flex-1 min-w-0">
+                            <div class="flex flex-wrap items-center justify-between gap-2 mb-1">
+                                <div class="flex items-center gap-2 flex-wrap">
+                                    <span class="font-mono text-xs sm:text-sm font-bold px-2.5 py-0.5 rounded-lg ${m.isBlackout ? 'bg-slate-800 text-slate-300' : 'bg-amber-500/20 text-amber-300 border border-amber-400/30'}">
+                                        ${m.tMinus}
+                                    </span>
+                                    <span class="text-xs font-medium text-slate-400">
+                                        <i class="fa-regular fa-calendar mr-1 text-slate-500"></i>${m.dates}
+                                    </span>
+                                </div>
+                                <div class="flex items-center gap-2">
+                                    <span class="text-[11px] font-medium px-2 py-0.5 rounded-md bg-white/5 text-slate-300">
+                                        <i class="fa-solid ${m.icon} mr-1 text-amber-400/80"></i>${m.category}
+                                    </span>
+                                    <span class="font-mono text-xs font-bold ${m.hours > 0 ? 'text-teal-300' : 'text-slate-500'}">
+                                        ${m.hours}h
+                                    </span>
+                                </div>
+                            </div>
+                            <h3 class="text-base sm:text-lg font-bold transition ${isChecked ? 'line-through text-slate-400' : 'text-white'}">
+                                ${m.title}
+                            </h3>
+                            <div class="flex flex-wrap gap-1.5 mt-2.5">
+                                ${subtasksHtml}
+                            </div>
+                        </div>
+                    </div>
+                `;
+
+                milestonesListEl.appendChild(card);
+            });
+
+            // Attach checkbox listeners
+            document.querySelectorAll('.milestone-chk').forEach(chk => {
+                chk.addEventListener('change', (e) => {
+                    const id = e.target.dataset.id;
+                    state.completedMilestones[id] = e.target.checked;
+                    saveState();
+                    renderMilestones();
+                    updateOverallProgress();
+                    if (e.target.checked) {
+                        playGentleChime('C5');
+                        showToast('Milestone completed! Keep up the momentum.');
+                    }
+                });
+            });
+        }
+
+        // Calculate Completed Hours & Progress Bar
+        function updateOverallProgress() {
+            const totalPlannedHours = DEFAULT_MILESTONES.reduce((sum, m) => sum + m.hours, 0); // 58 hrs
+            let earnedHours = 0;
+            let completedCount = 0;
+
+            DEFAULT_MILESTONES.forEach(m => {
+                if (state.completedMilestones[m.id]) {
+                    earnedHours += m.hours;
+                    completedCount++;
+                }
+            });
+
+            // Weight progress primarily by hours (90%) + milestone completion (10% so 0-hour milestones still move the needle)
+            const hourRatio = totalPlannedHours > 0 ? (earnedHours / totalPlannedHours) : 0;
+            const countRatio = completedCount / DEFAULT_MILESTONES.length;
+            const percent = Math.round((hourRatio * 0.9 + countRatio * 0.1) * 100);
+
+            hoursCompletedEl.textContent = earnedHours;
+            progressPercentEl.textContent = `${percent}%`;
+            overallProgressBarEl.style.width = `${percent}%`;
+        }
+
+        // Daily Sprint Allocation UI
+        function renderSprintSection() {
+            const isWeekend = state.scheduleMode === 'weekend';
+            const totalBlocks = isWeekend ? 4 : 2;
+
+            const weekdayBtn = document.getElementById('mode-weekday');
+            const weekendBtn = document.getElementById('mode-weekend');
+            const badge = document.getElementById('day-type-badge');
+            const container = document.getElementById('sprint-blocks-container');
+
+            if (isWeekend) {
+                weekendBtn.className = 'px-3 py-1 rounded-lg text-xs font-semibold bg-amber-400 text-slate-950 shadow transition';
+                weekdayBtn.className = 'px-3 py-1 rounded-lg text-xs font-semibold text-slate-400 hover:text-white transition';
+                badge.textContent = 'Weekend Target: 4h';
+                container.className = 'grid grid-cols-2 sm:grid-cols-4 gap-2';
+            } else {
+                weekdayBtn.className = 'px-3 py-1 rounded-lg text-xs font-semibold bg-amber-400 text-slate-950 shadow transition';
+                weekendBtn.className = 'px-3 py-1 rounded-lg text-xs font-semibold text-slate-400 hover:text-white transition';
+                badge.textContent = 'Weekday Target: 2h';
+                container.className = 'grid grid-cols-2 gap-2';
+            }
+
+            let doneCount = 0;
+            container.innerHTML = '';
+
+            for (let i = 0; i < totalBlocks; i++) {
+                const isDone = !!state.completedSprints[i];
+                if (isDone) doneCount++;
+
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.className = `py-2 px-2.5 rounded-xl border text-xs font-mono font-semibold flex items-center justify-center gap-1.5 transition ${
+                    isDone 
+                    ? 'bg-amber-500/20 border-amber-400/50 text-amber-300' 
+                    : 'bg-slate-900/60 border-white/10 text-slate-400 hover:border-white/25 hover:text-slate-200'
+                }`;
+                btn.innerHTML = `<i class="fa-solid ${isDone ? 'fa-circle-check text-amber-400' : 'fa-circle-dot opacity-50'}"></i> Block ${i + 1}`;
+                btn.addEventListener('click', () => {
+                    state.completedSprints[i] = !state.completedSprints[i];
+                    saveState();
+                    renderSprintSection();
+                });
+                container.appendChild(btn);
+            }
+
+            document.getElementById('sprint-count-label').textContent = `${doneCount} / ${totalBlocks} completed`;
+        }
+
+        // Study Timer Logic
+        function updateTimerDisplay() {
+            const mins = Math.floor(timerRemainingSeconds / 60);
+            const secs = timerRemainingSeconds % 60;
+            document.getElementById('timer-display').textContent = `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+            
+            const pct = timerDurationSeconds > 0 ? (timerRemainingSeconds / timerDurationSeconds) * 100 : 0;
+            document.getElementById('timer-progress-bg').style.width = `${pct}%`;
+        }
+
+        function toggleTimer() {
+            const startBtn = document.getElementById('timer-start-btn');
+            if (isTimerRunning) {
+                clearInterval(timerInterval);
+                isTimerRunning = false;
+                startBtn.innerHTML = '<i class="fa-solid fa-play"></i> <span>Resume Sprint</span>';
+            } else {
+                // Unlock Tone.js audio context on user gesture
+                if (typeof Tone !== 'undefined' && Tone.context.state !== 'running') {
+                    Tone.start();
+                }
+                isTimerRunning = true;
+                startBtn.innerHTML = '<i class="fa-solid fa-pause"></i> <span>Pause Sprint</span>';
+                timerInterval = setInterval(() => {
+                    if (timerRemainingSeconds > 0) {
+                        timerRemainingSeconds--;
+                        updateTimerDisplay();
+                    } else {
+                        clearInterval(timerInterval);
+                        isTimerRunning = false;
+                        startBtn.innerHTML = '<i class="fa-solid fa-play"></i> <span>Start Sprint</span>';
+                        handleSprintComplete();
+                    }
+                }, 1000);
+            }
+        }
+
+        function resetTimer(minutes = null) {
+            clearInterval(timerInterval);
+            isTimerRunning = false;
+            if (minutes !== null) {
+                timerDurationSeconds = minutes * 60;
+                const labelMap = {
+                    60: '60-Min Deep Focus Sprint',
+                    25: '25-Min Rapid Drill Block',
+                    10: '10-Min Neural Recovery Break'
+                };
+                document.getElementById('timer-preset-label').textContent = labelMap[minutes] || `${minutes}-Min Session`;
+            }
+            timerRemainingSeconds = timerDurationSeconds;
+            document.getElementById('timer-start-btn').innerHTML = '<i class="fa-solid fa-play"></i> <span>Start Sprint</span>';
+            updateTimerDisplay();
+        }
+
+        function handleSprintComplete() {
+            playGentleChime('E5');
+            // Auto-check the next incomplete 60-min sprint block if it was a 60m session
+            if (timerDurationSeconds === 3600) {
+                const maxBlocks = state.scheduleMode === 'weekend' ? 4 : 2;
+                for (let i = 0; i < maxBlocks; i++) {
+                    if (!state.completedSprints[i]) {
+                        state.completedSprints[i] = true;
+                        saveState();
+                        renderSprintSection();
+                        break;
+                    }
+                }
+            }
+            showToast('Session complete! Great focus block logged.');
+        }
+
+        // Scratchpad Tabs & Auto-save
+        function initTabsAndNotes() {
+            const textarea = document.getElementById('scratchpad-textarea');
+            const tabs = document.querySelectorAll('.note-tab');
+            const hintEl = document.getElementById('tab-hint');
+
+            const hints = {
+                sysdesign: 'Distributed systems & scale checklist',
+                star: 'Behavioral leadership & conflict stories',
+                ai: 'RAG pipelines, embeddings & eval notes'
+            };
+
+            function switchTab(tabKey) {
+                state.activeTab = tabKey;
+                tabs.forEach(t => {
+                    if (t.dataset.tab === tabKey) {
+                        t.classList.add('bg-amber-400', 'text-slate-950');
+                        t.classList.remove('text-slate-300', 'hover:text-white');
+                    } else {
+                        t.classList.remove('bg-amber-400', 'text-slate-950');
+                        t.classList.add('text-slate-300', 'hover:text-white');
+                    }
+                });
+                hintEl.textContent = hints[tabKey] || '';
+                textarea.value = state.notes[tabKey] || '';
+                updateCharCount();
+                saveState(false);
+            }
+
+            function updateCharCount() {
+                document.getElementById('char-count').textContent = `${textarea.value.length} chars`;
+            }
+
+            tabs.forEach(t => {
+                t.addEventListener('click', () => switchTab(t.dataset.tab));
+            });
+
+            let saveTimeout;
+            textarea.addEventListener('input', () => {
+                state.notes[state.activeTab] = textarea.value;
+                updateCharCount();
+                const statusEl = document.getElementById('save-status');
+                statusEl.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Saving...';
+                statusEl.classList.remove('text-emerald-400');
+                statusEl.classList.add('text-amber-300');
+
+                clearTimeout(saveTimeout);
+                saveTimeout = setTimeout(() => saveState(true), 400);
+            });
+
+            document.getElementById('insert-template-btn').addEventListener('click', () => {
+                const tpl = NOTE_TEMPLATES[state.activeTab];
+                if (!tpl) return;
+                const current = textarea.value.trim();
+                textarea.value = current ? `${current}\n\n${tpl}` : tpl;
+                state.notes[state.activeTab] = textarea.value;
+                updateCharCount();
+                saveState(true);
+                showToast('Structured template inserted.');
+            });
+
+            document.getElementById('copy-notes-btn').addEventListener('click', () => {
+                textarea.select();
+                document.execCommand('copy');
+                window.getSelection().removeAllRanges();
+                showToast('Notes copied to clipboard!');
+            });
+
+            // Initialize active tab
+            switchTab(state.activeTab);
+        }
+
+        // Bind Global Controls & Modals
+        function bindEvents() {
+            document.getElementById('mode-weekday').addEventListener('click', () => {
+                state.scheduleMode = 'weekday';
+                saveState();
+                renderSprintSection();
+            });
+
+            document.getElementById('mode-weekend').addEventListener('click', () => {
+                state.scheduleMode = 'weekend';
+                saveState();
+                renderSprintSection();
+            });
+
+            document.getElementById('timer-start-btn').addEventListener('click', toggleTimer);
+            document.getElementById('timer-reset-btn').addEventListener('click', () => resetTimer());
+
+            document.querySelectorAll('.preset-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    document.querySelectorAll('.preset-btn').forEach(b => {
+                        b.className = 'preset-btn px-2.5 py-1 rounded-lg text-xs font-mono bg-white/5 text-slate-300 hover:bg-white/10 border border-white/10 transition';
+                    });
+                    btn.className = 'preset-btn px-2.5 py-1 rounded-lg text-xs font-mono bg-amber-500/20 text-amber-300 border border-amber-400/40 transition';
+                    resetTimer(parseInt(btn.dataset.mins, 10));
+                });
+            });
+
+            // Reset Milestones with Custom Modal
+            document.getElementById('reset-milestones-btn').addEventListener('click', () => {
+                openConfirmModal(
+                    'Reset Prep Roadmap?',
+                    'This will uncheck all completed T-minus milestones back to 0%. Your scratchpad notes will remain intact.',
+                    () => {
+                        state.completedMilestones = {};
+                        saveState();
+                        renderMilestones();
+                        updateOverallProgress();
+                        showToast('Roadmap checkboxes reset.');
+                    }
+                );
+            });
+        }
+
+        // Custom Modal Helper
+        function openConfirmModal(title, message, onConfirm) {
+            const modal = document.getElementById('confirm-modal');
+            document.getElementById('modal-title').textContent = title;
+            document.getElementById('modal-message').textContent = message;
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+
+            const close = () => {
+                modal.classList.add('hidden');
+                modal.classList.remove('flex');
+            };
+
+            document.getElementById('modal-cancel').onclick = close;
+            document.getElementById('modal-confirm').onclick = () => {
+                close();
+                onConfirm();
+            };
+        }
+
+        // Non-intrusive Toast Notification
+        function showToast(msg) {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            toast.className = 'glass-panel px-4 py-3 rounded-xl border border-amber-400/40 text-xs sm:text-sm font-medium text-white shadow-xl flex items-center gap-2.5 transform transition-all duration-300 translate-y-2 opacity-0';
+            toast.innerHTML = `<i class="fa-solid fa-sparkles text-amber-400"></i> <span>${msg}</span>`;
+            container.appendChild(toast);
+
+            requestAnimationFrame(() => {
+                toast.classList.remove('translate-y-2', 'opacity-0');
+            });
+
+            setTimeout(() => {
+                toast.classList.add('opacity-0', 'translate-y-2');
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
+        }
+
+        // Synthesized Sound Effect via Tone.js
+        function playGentleChime(note = 'C5') {
+            try {
+                if (typeof Tone === 'undefined') return;
+                const synth = new Tone.Synth({
+                    oscillator: { type: 'sine' },
+                    envelope: { attack: 0.02, decay: 0.3, sustain: 0.1, release: 0.8 }
+                }).toDestination();
+                synth.volume.value = -12;
+                synth.triggerAttackRelease(note, '8n');
+            } catch (e) {
+                // Ignore audio block if user hasn't interacted yet
+            }
+        }
+
+        window.addEventListener('DOMContentLoaded', init);
+    </script>
+</body>
+</html>

@@ -1,0 +1,22 @@
+{
+  "name": "goal-countdown",
+  "version": "1.0.0",
+  "description": "Goal Countdown - High-focus milestone roadmap and live T-minus countdown tracker for interview preparation and ambitious career milestones.",
+  "main": "index.html",
+  "scripts": {
+    "start": "npx serve .",
+    "dev": "npx serve .",
+    "serve": "python3 -m http.server 8080"
+  },
+  "keywords": [
+    "goal-countdown",
+    "countdown-timer",
+    "interview-prep",
+    "roadmap-tracker",
+    "system-design",
+    "focus-timer",
+    "productivity"
+  ],
+  "author": "",
+  "license": "MIT"
+}
