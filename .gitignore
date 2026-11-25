@@ -23,7 +23,9 @@ yarn-error.log*
 .env.local
 .env.*.local
 
-# Build & temporary files
+# Netlify
+.netlify/
+
 dist/
 build/
 tmp/
